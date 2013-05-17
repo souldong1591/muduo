@@ -17,12 +17,15 @@
 #include <stdio.h>  // snprintf
 #include <strings.h>  // bzero
 #include <sys/socket.h>
+#ifdef __MACH__
+#include <sys/uio.h>  // readv
+#endif
 #include <unistd.h>
 
 using namespace muduo;
 using namespace muduo::net;
 
-namespace
+namespace muduo
 {
 
 typedef struct sockaddr SA;
@@ -37,7 +40,12 @@ SA* sockaddr_cast(struct sockaddr_in* addr)
   return static_cast<SA*>(implicit_cast<void*>(addr));
 }
 
-#if VALGRIND
+#if VALGRIND || __MACH__
+namespace net
+{
+namespace sockets
+{
+
 void setNonBlockAndCloseOnExec(int sockfd)
 {
   // non-block
@@ -54,13 +62,15 @@ void setNonBlockAndCloseOnExec(int sockfd)
 
   (void)ret;
 }
+
+}
+}
 #endif
 
 }
 
 int sockets::createNonblockingOrDie()
 {
-#if VALGRIND
   int sockfd = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   if (sockfd < 0)
   {
@@ -68,13 +78,6 @@ int sockets::createNonblockingOrDie()
   }
 
   setNonBlockAndCloseOnExec(sockfd);
-#else
-  int sockfd = ::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, IPPROTO_TCP);
-  if (sockfd < 0)
-  {
-    LOG_SYSFATAL << "sockets::createNonblockingOrDie";
-  }
-#endif
   return sockfd;
 }
 
@@ -99,13 +102,8 @@ void sockets::listenOrDie(int sockfd)
 int sockets::accept(int sockfd, struct sockaddr_in* addr)
 {
   socklen_t addrlen = static_cast<socklen_t>(sizeof *addr);
-#if VALGRIND
   int connfd = ::accept(sockfd, sockaddr_cast(addr), &addrlen);
   setNonBlockAndCloseOnExec(connfd);
-#else
-  int connfd = ::accept4(sockfd, sockaddr_cast(addr),
-                         &addrlen, SOCK_NONBLOCK | SOCK_CLOEXEC);
-#endif
   if (connfd < 0)
   {
     int savedErrno = errno;
