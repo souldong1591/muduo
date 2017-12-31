@@ -5,6 +5,7 @@
 #include <boost/bind.hpp>
 
 #include <stdio.h>
+#include <unistd.h>
 
 using namespace muduo;
 using namespace muduo::net;
@@ -30,7 +31,7 @@ int main()
 
   {
     printf("Single thread %p:\n", &loop);
-    EventLoopThreadPool model(&loop);
+    EventLoopThreadPool model(&loop, "single");
     model.setThreadNum(0);
     model.start(init);
     assert(model.getNextLoop() == &loop);
@@ -40,7 +41,7 @@ int main()
 
   {
     printf("Another thread:\n");
-    EventLoopThreadPool model(&loop);
+    EventLoopThreadPool model(&loop, "another");
     model.setThreadNum(1);
     model.start(init);
     EventLoop* nextLoop = model.getNextLoop();
@@ -53,7 +54,7 @@ int main()
 
   {
     printf("Three threads:\n");
-    EventLoopThreadPool model(&loop);
+    EventLoopThreadPool model(&loop, "three");
     model.setThreadNum(3);
     model.start(init);
     EventLoop* nextLoop = model.getNextLoop();

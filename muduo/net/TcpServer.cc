@@ -26,10 +26,10 @@ TcpServer::TcpServer(EventLoop* loop,
                      const string& nameArg,
                      Option option)
   : loop_(CHECK_NOTNULL(loop)),
-    hostport_(listenAddr.toIpPort()),
+    ipPort_(listenAddr.toIpPort()),
     name_(nameArg),
     acceptor_(new Acceptor(loop, listenAddr, option == kReusePort)),
-    threadPool_(new EventLoopThreadPool(loop)),
+    threadPool_(new EventLoopThreadPool(loop, name_)),
     connectionCallback_(defaultConnectionCallback),
     messageCallback_(defaultMessageCallback),
     nextConnId_(1)
@@ -46,11 +46,10 @@ TcpServer::~TcpServer()
   for (ConnectionMap::iterator it(connections_.begin());
       it != connections_.end(); ++it)
   {
-    TcpConnectionPtr conn = it->second;
+    TcpConnectionPtr conn(it->second);
     it->second.reset();
     conn->getLoop()->runInLoop(
       boost::bind(&TcpConnection::connectDestroyed, conn));
-    conn.reset();
   }
 }
 
@@ -76,8 +75,8 @@ void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
 {
   loop_->assertInLoopThread();
   EventLoop* ioLoop = threadPool_->getNextLoop();
-  char buf[32];
-  snprintf(buf, sizeof buf, ":%s#%d", hostport_.c_str(), nextConnId_);
+  char buf[64];
+  snprintf(buf, sizeof buf, "-%s#%d", ipPort_.c_str(), nextConnId_);
   ++nextConnId_;
   string connName = name_ + buf;
 

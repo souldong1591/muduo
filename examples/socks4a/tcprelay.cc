@@ -3,6 +3,7 @@
 #include <malloc.h>
 #include <stdio.h>
 #include <sys/resource.h>
+#include <unistd.h>
 
 using namespace muduo;
 using namespace muduo::net;
@@ -17,6 +18,7 @@ void onServerConnection(const TcpConnectionPtr& conn)
   if (conn->connected())
   {
     conn->setTcpNoDelay(true);
+    conn->stopRead();
     TunnelPtr tunnel(new Tunnel(g_eventLoop, *g_serverAddr, conn));
     tunnel->setup();
     tunnel->connect();

@@ -19,6 +19,7 @@
 
 #include <signal.h>
 #include <sys/eventfd.h>
+#include <unistd.h>
 
 using namespace muduo;
 using namespace muduo::net;
@@ -93,6 +94,8 @@ EventLoop::~EventLoop()
 {
   LOG_DEBUG << "EventLoop " << this << " of thread " << threadId_
             << " destructs in thread " << CurrentThread::tid();
+  wakeupChannel_->disableAll();
+  wakeupChannel_->remove();
   ::close(wakeupFd_);
   t_loopInThisThread = NULL;
 }
@@ -134,7 +137,7 @@ void EventLoop::loop()
 void EventLoop::quit()
 {
   quit_ = true;
-  // There is a chance that loop() just executes while(!quit_) and exists,
+  // There is a chance that loop() just executes while(!quit_) and exits,
   // then EventLoop destructs, then we are accessing an invalid object.
   // Can be fixed using mutex_ in both places.
   if (!isInLoopThread())
@@ -166,6 +169,12 @@ void EventLoop::queueInLoop(const Functor& cb)
   {
     wakeup();
   }
+}
+
+size_t EventLoop::queueSize() const
+{
+  MutexLockGuard lock(mutex_);
+  return pendingFunctors_.size();
 }
 
 TimerId EventLoop::runAt(const Timestamp& time, const TimerCallback& cb)
@@ -252,6 +261,13 @@ void EventLoop::removeChannel(Channel* channel)
         std::find(activeChannels_.begin(), activeChannels_.end(), channel) == activeChannels_.end());
   }
   poller_->removeChannel(channel);
+}
+
+bool EventLoop::hasChannel(Channel* channel)
+{
+  assert(channel->ownerLoop() == this);
+  assertInLoopThread();
+  return poller_->hasChannel(channel);
 }
 
 void EventLoop::abortNotInLoopThread()

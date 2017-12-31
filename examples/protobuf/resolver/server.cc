@@ -7,6 +7,8 @@
 
 #include <boost/bind.hpp>
 
+#include <unistd.h>
+
 using namespace muduo;
 using namespace muduo::net;
 
@@ -51,12 +53,12 @@ class ResolverServiceImpl : public ResolverService
 
   {
     LOG_INFO << "ResolverServiceImpl::doneCallback " << host;
-    int32_t ip = address.getSockAddrInet().sin_addr.s_addr;
+    int32_t ip = address.ipNetEndian();
     if (ip)
     {
       response->set_resolved(true);
       response->add_ip(ip);
-      response->add_port(address.getSockAddrInet().sin_port);
+      response->add_port(address.portNetEndian());
     }
     else
     {

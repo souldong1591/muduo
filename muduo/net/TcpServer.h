@@ -18,6 +18,7 @@
 #include <map>
 #include <boost/noncopyable.hpp>
 #include <boost/scoped_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 
 namespace muduo
 {
@@ -49,7 +50,7 @@ class TcpServer : boost::noncopyable
             Option option = kNoReusePort);
   ~TcpServer();  // force out-line dtor, for scoped_ptr members.
 
-  const string& hostport() const { return hostport_; }
+  const string& ipPort() const { return ipPort_; }
   const string& name() const { return name_; }
   EventLoop* getLoop() const { return loop_; }
 
@@ -67,7 +68,8 @@ class TcpServer : boost::noncopyable
   void setThreadInitCallback(const ThreadInitCallback& cb)
   { threadInitCallback_ = cb; }
   /// valid after calling start()
-  EventLoopThreadPool* threadPool() { return get_pointer(threadPool_); }
+  boost::shared_ptr<EventLoopThreadPool> threadPool()
+  { return threadPool_; }
 
   /// Starts the server if it's not listenning.
   ///
@@ -101,10 +103,10 @@ class TcpServer : boost::noncopyable
   typedef std::map<string, TcpConnectionPtr> ConnectionMap;
 
   EventLoop* loop_;  // the acceptor loop
-  const string hostport_;
+  const string ipPort_;
   const string name_;
   boost::scoped_ptr<Acceptor> acceptor_; // avoid revealing Acceptor
-  boost::scoped_ptr<EventLoopThreadPool> threadPool_;
+  boost::shared_ptr<EventLoopThreadPool> threadPool_;
   ConnectionCallback connectionCallback_;
   MessageCallback messageCallback_;
   WriteCompleteCallback writeCompleteCallback_;

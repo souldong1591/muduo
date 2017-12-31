@@ -8,6 +8,7 @@
 #include <boost/bind.hpp>
 #include <stdio.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 muduo::MutexLock g_mutex;
 std::map<int, int> g_delays;
@@ -34,9 +35,12 @@ void forkBench()
   for (int i = 0; i < kProcesses; ++i)
   {
     pid_t child = fork();
-    if (child == 0) {
+    if (child == 0)
+    {
       exit(0);
-    } else {
+    }
+    else
+    {
       waitpid(child, NULL, 0);
     }
   }

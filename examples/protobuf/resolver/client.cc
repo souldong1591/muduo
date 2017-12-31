@@ -12,6 +12,7 @@
 #include <boost/bind.hpp>
 
 #include <stdio.h>
+#include <unistd.h>
 
 using namespace muduo;
 using namespace muduo::net;
@@ -52,6 +53,10 @@ class RpcClient : boost::noncopyable
       resolve("www.google.com");
       resolve("acme.chenshuo.org");
     }
+    else
+    {
+      loop_->quit();
+    }
   }
 
   void resolve(const std::string& host)
@@ -81,7 +86,9 @@ class RpcClient : boost::noncopyable
     }
 
     if (++got_ >= total_)
-      loop_->quit();
+    {
+      client_.disconnect();
+    }
   }
 
   EventLoop* loop_;

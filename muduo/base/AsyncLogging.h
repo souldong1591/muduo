@@ -6,7 +6,6 @@
 #include <muduo/base/CountDownLatch.h>
 #include <muduo/base/Mutex.h>
 #include <muduo/base/Thread.h>
-
 #include <muduo/base/LogStream.h>
 
 #include <boost/bind.hpp>
@@ -22,7 +21,7 @@ class AsyncLogging : boost::noncopyable
  public:
 
   AsyncLogging(const string& basename,
-               size_t rollSize,
+               off_t rollSize,
                int flushInterval = 3);
 
   ~AsyncLogging()
@@ -64,7 +63,7 @@ class AsyncLogging : boost::noncopyable
   const int flushInterval_;
   bool running_;
   string basename_;
-  size_t rollSize_;
+  off_t rollSize_;
   muduo::Thread thread_;
   muduo::CountDownLatch latch_;
   muduo::MutexLock mutex_;

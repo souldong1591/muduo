@@ -26,6 +26,7 @@ namespace CurrentThread
 {
   __thread int t_cachedTid = 0;
   __thread char t_tidString[32];
+  __thread int t_tidStringLength = 6;
   __thread const char* t_threadName = "unknown";
   const bool sameType = boost::is_same<int, pid_t>::value;
   BOOST_STATIC_ASSERT(sameType);
@@ -65,26 +66,25 @@ struct ThreadData
   typedef muduo::Thread::ThreadFunc ThreadFunc;
   ThreadFunc func_;
   string name_;
-  boost::weak_ptr<pid_t> wkTid_;
+  pid_t* tid_;
+  CountDownLatch* latch_;
 
   ThreadData(const ThreadFunc& func,
              const string& name,
-             const boost::shared_ptr<pid_t>& tid)
+             pid_t* tid,
+             CountDownLatch* latch)
     : func_(func),
       name_(name),
-      wkTid_(tid)
+      tid_(tid),
+      latch_(latch)
   { }
 
   void runInThread()
   {
-    pid_t tid = muduo::CurrentThread::tid();
-
-    boost::shared_ptr<pid_t> ptid = wkTid_.lock();
-    if (ptid)
-    {
-      *ptid = tid;
-      ptid.reset();
-    }
+    *tid_ = muduo::CurrentThread::tid();
+    tid_ = NULL;
+    latch_->countDown();
+    latch_ = NULL;
 
     muduo::CurrentThread::t_threadName = name_.empty() ? "muduoThread" : name_.c_str();
     ::prctl(PR_SET_NAME, muduo::CurrentThread::t_threadName);
@@ -135,8 +135,7 @@ void CurrentThread::cacheTid()
   if (t_cachedTid == 0)
   {
     t_cachedTid = detail::gettid();
-    int n = snprintf(t_tidString, sizeof t_tidString, "%5d ", t_cachedTid);
-    assert(n == 6); (void) n;
+    t_tidStringLength = snprintf(t_tidString, sizeof t_tidString, "%5d ", t_cachedTid);
   }
 }
 
@@ -159,9 +158,10 @@ Thread::Thread(const ThreadFunc& func, const string& n)
   : started_(false),
     joined_(false),
     pthreadId_(0),
-    tid_(new pid_t(0)),
+    tid_(0),
     func_(func),
-    name_(n)
+    name_(n),
+    latch_(1)
 {
   setDefaultName();
 }
@@ -171,9 +171,10 @@ Thread::Thread(ThreadFunc&& func, const string& n)
   : started_(false),
     joined_(false),
     pthreadId_(0),
-    tid_(new pid_t(0)),
+    tid_(0),
     func_(std::move(func)),
-    name_(n)
+    name_(n),
+    latch_(1)
 {
   setDefaultName();
 }
@@ -204,12 +205,17 @@ void Thread::start()
   assert(!started_);
   started_ = true;
   // FIXME: move(func_)
-  detail::ThreadData* data = new detail::ThreadData(func_, name_, tid_);
+  detail::ThreadData* data = new detail::ThreadData(func_, name_, &tid_, &latch_);
   if (pthread_create(&pthreadId_, NULL, &detail::startThread, data))
   {
     started_ = false;
     delete data; // or no delete?
     LOG_SYSFATAL << "Failed in pthread_create";
+  }
+  else
+  {
+    latch_.wait();
+    assert(tid_ > 0);
   }
 }
 

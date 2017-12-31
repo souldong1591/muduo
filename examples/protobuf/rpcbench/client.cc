@@ -13,6 +13,7 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include <stdio.h>
+#include <unistd.h>
 
 using namespace muduo;
 using namespace muduo::net;
@@ -115,7 +116,7 @@ int main(int argc, char* argv[])
     CountDownLatch allFinished(nClients);
 
     EventLoop loop;
-    EventLoopThreadPool pool(&loop);
+    EventLoopThreadPool pool(&loop, "rpcbench-client");
     pool.setThreadNum(nThreads);
     pool.start();
     InetAddress serverAddr(argv[1], 8888);

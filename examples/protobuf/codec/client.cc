@@ -10,6 +10,7 @@
 #include <boost/bind.hpp>
 
 #include <stdio.h>
+#include <unistd.h>
 
 using namespace muduo;
 using namespace muduo::net;
@@ -116,7 +117,7 @@ int main(int argc, char* argv[])
   }
   else
   {
-    printf("Usage: %s host port [q|e]\n", argv[0]);
+    printf("Usage: %s host_ip port [q|e]\n", argv[0]);
   }
 }
 

@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 using namespace muduo;
 using namespace muduo::net;
@@ -133,4 +134,13 @@ int main(int argc, char* argv[])
     std::pair<int, int> t = runOnce();
     printf("%8d %8d\n", t.first, t.second);
   }
+
+  for (boost::ptr_vector<Channel>::iterator it = g_channels.begin();
+       it != g_channels.end(); ++it)
+  {
+    it->disableAll();
+    it->remove();
+  }
+  g_channels.clear();
 }
+

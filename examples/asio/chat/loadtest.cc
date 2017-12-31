@@ -12,6 +12,7 @@
 #include <boost/ptr_container/ptr_vector.hpp>
 
 #include <stdio.h>
+#include <unistd.h>
 
 using namespace muduo;
 using namespace muduo::net;
@@ -144,7 +145,7 @@ int main(int argc, char* argv[])
 
     EventLoop loop;
     g_loop = &loop;
-    EventLoopThreadPool loopPool(&loop);
+    EventLoopThreadPool loopPool(&loop, "chat-loadtest");
     loopPool.setThreadNum(threads);
     loopPool.start();
 

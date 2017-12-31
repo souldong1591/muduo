@@ -2,20 +2,18 @@
 
 #include <sys/time.h>
 #include <stdio.h>
+
+#ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
+#endif
+
 #include <inttypes.h>
-#undef __STDC_FORMAT_MACROS
 
 #include <boost/static_assert.hpp>
 
 using namespace muduo;
 
 BOOST_STATIC_ASSERT(sizeof(Timestamp) == sizeof(int64_t));
-
-Timestamp::Timestamp(int64_t microseconds)
-  : microSecondsSinceEpoch_(microseconds)
-{
-}
 
 string Timestamp::toString() const
 {
@@ -56,10 +54,5 @@ Timestamp Timestamp::now()
   gettimeofday(&tv, NULL);
   int64_t seconds = tv.tv_sec;
   return Timestamp(seconds * kMicroSecondsPerSecond + tv.tv_usec);
-}
-
-Timestamp Timestamp::invalid()
-{
-  return Timestamp();
 }
 
